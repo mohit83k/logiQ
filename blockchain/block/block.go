@@ -2,9 +2,9 @@
 package block
 
 type Block struct {
-	index    string
-	previous string
-	hash     string
-	data     string
-	nounce   int
+	Index    string
+	Previous string
+	Hash     string
+	Data     string
+	Nounce   int
 }

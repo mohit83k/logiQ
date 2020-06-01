@@ -3,10 +3,10 @@ package blockchain
 import (
 	"fmt"
 
-	"github.com/mohit83k/logiQ/blockcahin/block"
+	"github.com/mohit83k/logiQ/blockchain/block"
 )
 
-func main() {
+func say() {
 	b := new(block.Block)
 	b.nounce = 1
 	fmt.Println(block)
