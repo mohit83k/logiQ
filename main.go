@@ -26,6 +26,7 @@ func main() {
 	if *peer != "127.0.0.1" {
 		go explorer.Discover(*peer)
 	}
+	fmt.Println("Needs to discover on peer : ", *peer)
 	for {
 		reader := bufio.NewReader(os.Stdin)
 		fmt.Print("Enter Transaction Record: ")

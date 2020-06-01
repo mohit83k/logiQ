@@ -45,7 +45,7 @@ func ExplorerReception(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("Same Peer")
 		continue
 	}
-	resp, err := http.Get(peer + ":" + blockchain_port + "/explore")
+	resp, err := http.Get("http://" + peer + ":" + blockchain_port + "/explore")
 	if err != nil {
 		fmt.Println(err)
 		return
