@@ -19,6 +19,7 @@ const blockchain_port = "37000"
 func Distribute(bl block.Block) {
 	jBlock, err := json.Marshal(bl)
 	if err != nil {
+		fmt.Println("Unable to marshal block")
 		return
 	}
 	for _, peer := range explorer.Peers {
@@ -27,6 +28,7 @@ func Distribute(bl block.Block) {
 		req, err := http.NewRequest("POST", url, bytes.NewBuffer(jBlock))
 		req.Header.Set("Content-Type", "application/json")
 		client := &http.Client{}
+		fmt.Println("Sending Block to : ", url)
 		resp, err := client.Do(req)
 		if err != nil {
 			panic(err)
@@ -41,6 +43,7 @@ func Distribute(bl block.Block) {
 }
 
 func RecieveBlock(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("RecieveBlock")
 	var bl block.Block
 	data, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -55,9 +58,9 @@ func RecieveBlock(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if blockchain.Exists(bl) {
+		w.Write([]byte("Block Added : Reached Cycle"))
 		return
 	}
-
 	blockchain.AddBlock(bl)
 	go Distribute(bl)
 }

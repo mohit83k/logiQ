@@ -39,6 +39,7 @@ func getBlock(data string) block.Block {
 }
 
 func appendToChain(bl block.Block) {
+	fmt.Printf("Block Added to chain : %v\n", bl)
 	Blockchain = append(Blockchain, bl)
 }
 
@@ -50,6 +51,7 @@ func AddBlock(bl block.Block) {
 
 func Exists(bl block.Block) bool {
 	if bl.Index < int64(len(Blockchain)) {
+		fmt.Println("Block Already exist")
 		return true
 	}
 	return false

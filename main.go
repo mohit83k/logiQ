@@ -30,10 +30,11 @@ func main() {
 		reader := bufio.NewReader(os.Stdin)
 		fmt.Print("Enter Transaction Record: ")
 		text, _ := reader.ReadString('\n')
-		if strings.TrimRight(text, "\n") == "print_blockchain\r" {
+		if strings.TrimRight(text, "\n") == "print_blockchain" {
 			fmt.Printf("%v\n", blockchain.Blockchain)
 		} else {
 			bl := blockchain.AddData(text)
+			fmt.Printf("%v\n", bl)
 			go distribute.Distribute(bl)
 		}
 

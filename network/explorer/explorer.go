@@ -32,14 +32,17 @@ func ExplorerReception(w http.ResponseWriter, r *http.Request) {
 	// send back it's IP other wise forward the request to another
 	addr := strings.Split(r.RemoteAddr, ":")
 	if len(Peers) < limit {
-		Peers = append(Peers, ip)
+		//Peers = append(Peers, ip)
 		Peers = append(Peers, addr[0])
 		w.Write([]byte(ip))
+		fmt.Println("Peer added : ", addr[0])
+		return
 	}
 
 	//Rabdomly re-direct request to other peer
 	peer := Peers[rand.Intn(limit-1)]
 	for peer == addr[0] {
+		fmt.Println("Same Peer")
 		continue
 	}
 	resp, err := http.Get(peer + ":" + blockchain_port + "/explore")
@@ -49,12 +52,14 @@ func ExplorerReception(w http.ResponseWriter, r *http.Request) {
 	}
 	body, _ := ioutil.ReadAll(resp.Body)
 	w.Write(body)
+	fmt.Println("Successfully acted as intermediate node , now peer is ", string(body))
 
 }
 
 func Discover(host string) {
-
+	fmt.Println("Discover")
 	if len(Peers) >= limit {
+		fmt.Println("Peer limit reached")
 		return
 	}
 	resp, err := http.Get(host + ":" + blockchain_port + "/explore")
@@ -64,6 +69,7 @@ func Discover(host string) {
 	}
 	body, _ := ioutil.ReadAll(resp.Body)
 	Peers = append(Peers, string(body))
+	fmt.Println("Peer appended", Peers)
 }
 
 func externalIP() (string, error) {
