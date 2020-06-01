@@ -1,7 +1,9 @@
 package main
 
-func main(){
+import "github.com/mohit83k/logiQ/blockchain"
 
+func main(){
+	blockchain.say()
 }
 
 /**
