@@ -17,7 +17,7 @@ func init() {
 	genesis.Data = "Block chain for Logistics Author : Mohit Kumar" +
 		"ID : github.com/mohit83k"
 	genesis.Nounce = string(0)
-	genesis.TimeStamp = fmt.Sprint(time.Now())
+	genesis.TimeStamp = "Long Long Ago ...."
 	genesis.Hash = genesis.GetHash()
 	appendToChain(genesis)
 }
@@ -45,6 +45,8 @@ func appendToChain(bl block.Block) {
 
 //AddBlock adds block to blockchain
 func AddBlock(bl block.Block) {
+	fmt.Println("Add Block Previous Block : ", bl.Previous)
+	fmt.Println("Add Block Previous Block : ", Blockchain[bl.Index-1].Hash)
 	if bl.Previous == Blockchain[bl.Index-1].Hash {
 		appendToChain(bl)
 	} else {
