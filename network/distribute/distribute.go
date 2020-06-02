@@ -5,65 +5,91 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/mohit83k/logiQ/blockchain"
 	"github.com/mohit83k/logiQ/blockchain/block"
 	"github.com/mohit83k/logiQ/network/explorer"
 )
 
-const limit = 2
-const blockchain_port = "37000"
+var distributeURL string
+
+func Configure(_distributeURL string) {
+	distributeURL = _distributeURL
+}
+
+type DistributeResponse struct {
+	Status string
+	Err    error
+	Index  string
+}
 
 func Distribute(bl block.Block) {
 	jBlock, err := json.Marshal(bl)
 	if err != nil {
-		fmt.Println("Unable to marshal block")
+		log.Println("Distribute : Unable to marshal block.Report Bug", err)
 		return
 	}
-	for _, peer := range explorer.Peers {
-		url := "http://" + peer + ":" + blockchain_port + "/peer_block"
-
-		req, err := http.NewRequest("POST", url, bytes.NewBuffer(jBlock))
-		req.Header.Set("Content-Type", "application/json")
-		client := &http.Client{}
-		fmt.Println("Sending Block to : ", url)
-		resp, err := client.Do(req)
+	for index, peer := range explorer.Peers {
+		var dr = DistributeResponse{}
+		if peer == "" {
+			log.Println("Peer is Empty")
+			continue
+		}
+		url := "http://" + peer + distributeURL
+		//Goes to Distribute Reciever
+		resp, err := http.Post(url, "application/json", bytes.NewBuffer(jBlock))
 		if err != nil {
-			//panic(err)
-			fmt.Println("error client do")
-			fmt.Println(err)
+			log.Println("Distribute: Error in Post call", err)
+			continue
+		}
+		if err = json.NewDecoder(resp.Body).Decode(&dr); err != nil {
+			log.Println("Distribute: Unable to read Json from resp body : ", err)
 			return
 		}
-		defer resp.Body.Close()
+		resp.Body.Close()
+		fmt.Printf("%d block sent t0 %s : response is %v\n", index, peer, dr)
 
-		fmt.Println("response Status:", resp.Status)
-		fmt.Println("response Headers:", resp.Header)
-		body, _ := ioutil.ReadAll(resp.Body)
-		fmt.Println("response Body:", string(body))
 	}
 }
 
-func RecieveBlock(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("RecieveBlock")
+func DistributeReciever(w http.ResponseWriter, r *http.Request) {
+	var dr = DistributeResponse{}
 	var bl block.Block
-	data, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		w.Write([]byte("No block Found"))
-		return
-	}
+	dr.Status = "success"
+	dr.Err = nil
+	dr.Index = strconv.Itoa(int(bl.Index))
+	// data, err := ioutil.ReadAll(r.Body)
+	// w.Header().Set("Content-Type", "application/json")
+	// if err != nil {
+	// 	log.Println("DistributeReciever : Unable to read Body", err)
+	// 	dr.Err = err
+	// 	dr.Status = "Failure"
+	// 	json.NewEncoder(w).Encode(dr)
+	// 	return
+	// }
 
-	err = json.Unmarshal(data, &bl)
-	if err != nil {
-		w.Write([]byte("Invalid Block Format"))
+	// err = json.Unmarshal(data, &bl)
+	// if err != nil {
+	// 	log.Println("DistributeReciever : Unable to read Body", err)
+	// 	dr.Err = err
+	// 	dr.Status = "Failure"
+	// 	json.NewEncoder(w).Encode(dr)
+	// 	return
+	// }
+
+	if err := json.NewDecoder(r.Body).Decode(&bl); err != nil {
+		log.Println("DistributeReciever: Unable to read Json from resp body : ", err)
 		return
 	}
 
 	if blockchain.Exists(bl) {
-		w.Write([]byte("Block Added : Reached Cycle"))
+		dr.Status = "Block Already Exist"
+		json.NewEncoder(w).Encode(dr)
 		return
 	}
+	json.NewEncoder(w).Encode(dr)
 	blockchain.AddBlock(bl)
-	go Distribute(bl)
 }

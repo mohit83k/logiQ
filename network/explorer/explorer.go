@@ -2,111 +2,173 @@
 package explorer
 
 import (
-	"errors"
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"math/rand"
-	"net"
+	"log"
 	"net/http"
-	"strings"
+	"sync"
+
+	"github.com/mohit83k/logiQ/blockchain"
+	"github.com/mohit83k/logiQ/blockchain/block"
 )
 
-const limit = 2
-const blockchain_port = "37000"
-
+var mux = &sync.Mutex{}
 var Peers []string
+var broadCastURL string
+var connectURL string
+var selfIdentity string
 
-var ip string
+const protocol = "http://"
 
-func init() {
-	var err error
-	ip, err = externalIP()
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+func Configure(_broadCastURL string, _connectURL string, _selfIdentity string) {
+	mux.Lock()
+	broadCastURL = _broadCastURL
+	connectURL = _connectURL
+	selfIdentity = _selfIdentity
+	mux.Unlock()
+}
+
+//structure of Update Message
+type UpdateRequest struct {
+	ID string
+}
+
+//Response of Update Message Request
+type UpdateResponse struct {
+	ID     string
+	Err    error
+	Status string
+}
+
+//Response of Connect Request.
+type ConnectResponse struct {
+	Nodes      []string      //All the Avaialble Nodes on the Network. i.e Peers in our case
+	Blockchain []block.Block //Existing Blockchain.
+	Err        error
 }
 
 func ExplorerReception(w http.ResponseWriter, r *http.Request) {
-	//Take the request if number of current peers is less than limit
-	// send back it's IP other wise forward the request to another
-	addr := strings.Split(r.RemoteAddr, ":")
-	if len(Peers) < limit {
-		//Peers = append(Peers, ip)
-		Peers = append(Peers, addr[0])
-		w.Write([]byte(ip))
-		fmt.Println("Peer added : ", addr[0])
+
+	var cr = ConnectResponse{}
+	cr.Err = nil
+
+	//Read Information from Peer request
+	var pr = UpdateRequest{} // Peer Request have same structure as UpdateRequest
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		cr.Err = err
+		json.NewEncoder(w).Encode(cr)
+		return
+	}
+	err = json.Unmarshal(body, &pr)
+	if err != nil {
+		cr.Err = err
+		json.NewEncoder(w).Encode(cr)
 		return
 	}
 
-	//Rabdomly re-direct request to other peer
-	peer := Peers[rand.Intn(limit-1)]
-	for peer == addr[0] {
-		fmt.Println("Same Peer")
-		continue
-	}
-	resp, err := http.Get("http://" + peer + ":" + blockchain_port + "/explore")
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	body, _ := ioutil.ReadAll(resp.Body)
-	w.Write(body)
-	fmt.Println("Successfully acted as intermediate node , now peer is ", string(body))
+	//Before adding new connection to Peer Update all existing nodes that there is new Peer
+	broadCastPeers(pr)
+
+	//Add your peers and yourself and tell it to requester
+	cr.Nodes = make([]string, len(Peers)+1)
+	copy(cr.Nodes, Peers)
+	cr.Nodes = append(cr.Nodes, selfIdentity)
+	cr.Blockchain = blockchain.Blockchain
+	json.NewEncoder(w).Encode(cr)
+
+	//Now add It in your peer list
+	updatePeer(pr.ID)
 
 }
 
-func Discover(host string) {
-	fmt.Println("Discover")
-	if len(Peers) >= limit {
-		fmt.Println("Peer limit reached")
-		return
-	}
-	fmt.Printf("Host is %q", host)
-	url := "http://" + host + ":" + blockchain_port + "/explore"
-	resp, err := http.Get(url)
+//UpdatePeerHandler Updates takes update from it's peer when ever a new peer is added with their
+func UpdatePeerHandler(w http.ResponseWriter, r *http.Request) {
+	//Variable to to recive msg
+	var msg = UpdateRequest{}
+	var rmsg = UpdateResponse{} // Response Message
+	rmsg.ID = selfIdentity
+	data, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		fmt.Println(err)
+		rmsg.Err = err
+		rmsg.Status = "Unable to read body of update msg"
+		json.NewEncoder(w).Encode(rmsg)
 		return
 	}
-	body, _ := ioutil.ReadAll(resp.Body)
-	Peers = append(Peers, string(body))
-	fmt.Println("Peer appended", Peers)
+
+	err = json.Unmarshal(data, &msg)
+	if err != nil {
+		rmsg.Err = err
+		rmsg.Status = "Invalid Update Packet"
+		json.NewEncoder(w).Encode(rmsg)
+		return
+	}
+	updatePeer(msg.ID)
 }
 
-func externalIP() (string, error) {
-	ifaces, err := net.Interfaces()
-	if err != nil {
-		return "", err
-	}
-	for _, iface := range ifaces {
-		if iface.Flags&net.FlagUp == 0 {
-			continue // interface down
-		}
-		if iface.Flags&net.FlagLoopback != 0 {
-			continue // loopback interface
-		}
-		addrs, err := iface.Addrs()
+func updatePeer(peer string) {
+	mux.Lock()
+	Peers = append(Peers, peer)
+	mux.Unlock()
+}
+
+//Broadcase Message to Peers
+func broadCastPeers(msg UpdateRequest) {
+	jMsg, _ := json.Marshal(msg)
+	for _, peer := range Peers {
+		//recieved by UpdatePeerHandler
+		resp, err := http.Post(protocol+peer+broadCastURL, "application/json", bytes.NewReader(jMsg))
 		if err != nil {
-			return "", err
+			log.Println(err)
+			continue
 		}
-		for _, addr := range addrs {
-			var ip net.IP
-			switch v := addr.(type) {
-			case *net.IPNet:
-				ip = v.IP
-			case *net.IPAddr:
-				ip = v.IP
-			}
-			if ip == nil || ip.IsLoopback() {
-				continue
-			}
-			ip = ip.To4()
-			if ip == nil {
-				continue // not an ipv4 address
-			}
-			return ip.String(), nil
-		}
+		//log.Println(string(ioutil.ReadAll(resp.Body)))
+		resp.Body.Close()
 	}
-	return "", errors.New("are you connected to the network?")
+}
+
+//Connect to Network Connects to blockchain network
+func ConnectNetwork(peer string) {
+	log.Println("ConnectNetwork: Trying to Connect to Network with Peer", peer)
+	var connRequest = UpdateRequest{}
+	connRequest.ID = selfIdentity
+	jMsg, _ := json.Marshal(connRequest)
+	//It goes to reception i.e ExplorerReception
+	resp, err := http.Post(protocol+peer+connectURL, "application/json", bytes.NewReader(jMsg))
+	if err != nil {
+		log.Fatal("Unable to Make Connection with the Host. Please use different seed Node", err)
+	}
+
+	var cr = ConnectResponse{}
+	// body, err := ioutil.ReadAll(resp.Body)
+	// if err != nil {
+	// 	log.Fatal("Unable to Read Body of Connection Response. Report Bug", err)
+	// }
+	// resp.Body.Close()
+
+	// err = json.Unmarshal(body, &cr)
+	// if err != nil {
+	// 	log.Fatal("Unable to parse Body of Connection Response to Struct. Report Bug", err)
+	// }
+
+	if err := json.NewDecoder(resp.Body).Decode(&cr); err != nil {
+		log.Println("ConnectNetwork: Unable to read Json from resp body : ", err)
+		return
+	}
+
+	if cr.Err != nil {
+		log.Fatal("Error Returned By Peer. Report Bug", cr.Err)
+	}
+
+	//Update Blockchain
+	blockchain.UpdateBlockchain(cr.Blockchain)
+
+	//Update Peers
+	for _, node := range cr.Nodes {
+		updatePeer(node)
+	}
+	fmt.Printf("Peers Updated : %v\n", Peers)
+
 }

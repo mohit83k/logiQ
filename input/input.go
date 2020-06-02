@@ -16,7 +16,7 @@ func AddData(w http.ResponseWriter, r *http.Request) {
 	if data, ok := r.Form["data"]; ok {
 		if len(data) > 0 {
 			bl := blockchain.AddData(data[0])
-			go distribute.Distribute(bl)
+			distribute.Distribute(bl)
 		}
 	}
 
@@ -25,12 +25,6 @@ func AddData(w http.ResponseWriter, r *http.Request) {
 
 func GetBlockChain(w http.ResponseWriter, r *http.Request) {
 	bc := blockchain.Blockchain
-	jBc, err := json.Marshal(bc)
-	if err != nil {
-		fmt.Println("Unable to marshal block")
-		return
-	}
-
-	w.Write(jBc)
+	json.NewEncoder(w).Encode(bc)
 
 }

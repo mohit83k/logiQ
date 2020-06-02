@@ -2,12 +2,14 @@ package blockchain
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	block "github.com/mohit83k/logiQ/blockchain/block"
 )
 
 var Blockchain []block.Block
+var mux = &sync.Mutex{}
 
 func init() {
 	//Add Genesis block
@@ -64,4 +66,12 @@ func Exists(bl block.Block) bool {
 	fmt.Println("Exists : Block do not exists Exist ")
 
 	return false
+}
+
+func UpdateBlockchain(bc []block.Block) {
+	mux.Lock()
+	Blockchain = make([]block.Block, len(bc))
+	copy(Blockchain, bc)
+	fmt.Printf("Blockchain Updated %v\n", Blockchain)
+	mux.Unlock()
 }
