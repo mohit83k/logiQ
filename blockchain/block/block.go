@@ -3,7 +3,7 @@ package block
 
 import (
 	"crypto/sha256"
-	"fmt"
+	"encoding/hex"
 	"math/rand"
 )
 
@@ -17,8 +17,11 @@ type Block struct {
 }
 
 func (bl Block) GetHash() string {
-	sum := sha256.Sum256([]byte(bl.Previous + bl.Data + bl.TimeStamp + bl.Nounce))
-	return fmt.Sprint(sum)
+	s := bl.Previous + bl.Data + bl.TimeStamp + bl.Nounce
+	h := sha256.New()
+	h.Write([]byte(s))
+	return hex.EncodeToString(h.Sum(nil))
+
 }
 
 func (bl *Block) Mine() {

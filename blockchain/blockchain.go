@@ -43,16 +43,23 @@ func appendToChain(bl block.Block) {
 	Blockchain = append(Blockchain, bl)
 }
 
+//AddBlock adds block to blockchain
 func AddBlock(bl block.Block) {
 	if bl.Previous == Blockchain[bl.Index-1].Hash {
 		appendToChain(bl)
+	} else {
+		fmt.Println("Addblock Hash did not matched")
 	}
 }
 
+//Exists func check is block exist in chain
 func Exists(bl block.Block) bool {
 	if bl.Index < int64(len(Blockchain)) {
-		fmt.Println("Block Already exist")
+		fmt.Println("Exists : Block Already exist")
 		return true
 	}
+
+	fmt.Println("Exists : Block do not exists Exist ")
+
 	return false
 }
