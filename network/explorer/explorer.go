@@ -62,7 +62,9 @@ func Discover(host string) {
 		fmt.Println("Peer limit reached")
 		return
 	}
-	resp, err := http.Get(host + ":" + blockchain_port + "/explore")
+	fmt.Printf("Host is %q", host)
+	url := "http://" + host + ":" + blockchain_port + "/explore"
+	resp, err := http.Get(url)
 	if err != nil {
 		fmt.Println(err)
 		return

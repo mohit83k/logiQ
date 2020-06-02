@@ -23,6 +23,8 @@ func main() {
 
 	peer := flag.String("ip", "127.0.0.1", "Main Node IP address")
 	flag.Parse()
+	fmt.Printf("Host was %q", *peer)
+	*peer = strings.TrimSpace(*peer)
 	if *peer != "127.0.0.1" {
 		go explorer.Discover(*peer)
 	}

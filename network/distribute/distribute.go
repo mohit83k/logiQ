@@ -31,7 +31,10 @@ func Distribute(bl block.Block) {
 		fmt.Println("Sending Block to : ", url)
 		resp, err := client.Do(req)
 		if err != nil {
-			panic(err)
+			//panic(err)
+			fmt.Println("error client do")
+			fmt.Println(err)
+			return
 		}
 		defer resp.Body.Close()
 
