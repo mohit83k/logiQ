@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+
+    <title>logiQ</title>
+  </head>
+  <body>
+      <!-- NavBar -->
+    <nav class="navbar navbar-dark bg-dark">
+        <span class="navbar-brand mb-0 h1">logiQ</span>
+    </nav>
+    <br>
+    <br>
+    <div class="container-fluid">
+        <button type="button" class="btn btn-secondary btn-lg" id="postData">Post Transaction</button>
+        <button type="button" class="btn btn-secondary btn-lg" id="fetchData">Blockchain</button>
+    <br>
+    <br>
+    <!-- input box for transaction data -->
+    <div class="input-group">
+        <div class="input-group-prepend">
+          <span class="input-group-text">Transaction Data</span>
+        </div>
+        <textarea class="form-control" aria-label="With textarea" id="transactionData"></textarea>
+    </div>
+    <br>
+    <br>
+    <!-- Post blockchain data -->
+    <div id="blockdata">
+    </div>
+    </div>
+    
+
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
+    <!-- <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script> -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+    <script>
+       
+        //Post Data
+        jQuery("#postData").click(function(){
+           
+            let block_data = document.getElementById("transactionData").value
+            $.post("/addblock",
+            {
+                data: block_data
+            },
+
+            function(data, status){
+                if(status != "success"){
+                    console.log("Response Data : ",data, "status : ",status)
+                }  
+            });
+
+        });
+
+        //Fetch Data
+        jQuery("#fetchData").click(function(){
+            jQuery.get("/fetchblockchain", function(data, status){
+                document.getElementById("blockdata").innerText = ''
+                let blocks = JSON.parse(data)
+               // console.log(blocks)
+                for(index in blocks){
+                   // console.log(blocks[block].Index)
+                    UpdateData(blocks[index])
+                }
+
+            });
+        });
+
+        function UpdateData(block){
+            let card = `
+            <br>
+            <div class="card">
+            <div class="card-header">
+                Block Number :  ${block.Index}
+            </div>
+            <div class="card-body">
+                <p class="card-text"> previous hash : ${block.Previous}</p>
+                <p class="card-text"> Hash : ${block.Hash}</p>
+                <p class="card-text"> Data : ${block.Data}</p>
+                <p class="card-text"> Nounce : ${block.Nounce}</p>
+                <p class="card-text"> Timestamp : ${block.TimeStamp}</p>
+            </div>
+            </div>
+            <br>
+            `
+            jQuery("#blockdata").prepend(card);
+        }
+    </script>
+</body>
+</html>
