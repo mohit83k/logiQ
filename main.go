@@ -15,6 +15,7 @@ import (
 	"github.com/mohit83k/logiQ/input"
 	"github.com/mohit83k/logiQ/network/distribute"
 	"github.com/mohit83k/logiQ/network/explorer"
+	"github.com/mohit83k/logiQ/web"
 )
 
 const port = "37000"
@@ -25,6 +26,7 @@ const explorerReception = "/explorer"
 const distributeURL = "/distribute"
 const addBlockURL = "/addblock"
 const blockchainFetchURL = "/fetchblockchain"
+const fetchServerList = "/fetchserverlist"
 
 func main() {
 	rand.Seed(time.Now().UnixNano())
@@ -63,6 +65,8 @@ func main() {
 	http.HandleFunc(addBlockURL, input.AddData)
 	http.HandleFunc(blockchainFetchURL, input.GetBlockChain)
 	http.HandleFunc(distributeURL, distribute.DistributeReciever)
+	http.HandleFunc(fetchServerList, explorer.GetServerlist)
+	http.HandleFunc("/", web.ServeFiles)
 	fmt.Println("Listening on : ", selfIdentity)
 	http.ListenAndServe(":"+*port, nil)
 

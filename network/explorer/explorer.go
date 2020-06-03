@@ -49,6 +49,16 @@ type ConnectResponse struct {
 	Err        error
 }
 
+func GetServerlist(w http.ResponseWriter, r *http.Request) {
+	mux.Lock()
+	var servers = make([]string, len(Peers)+1)
+	copy(servers, Peers)
+	mux.Unlock()
+	servers[len(Peers)] = selfIdentity
+	fmt.Println("GetServerlist : Sending Response", servers)
+	json.NewEncoder(w).Encode(servers)
+}
+
 func ExplorerReception(w http.ResponseWriter, r *http.Request) {
 
 	var cr = ConnectResponse{}
